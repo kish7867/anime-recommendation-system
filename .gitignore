@@ -1,20 +1,17 @@
 # Python
 __pycache__/
 *.py[cod]
-*.sqlite3
-
-# Environment
-.env
+*.egg-info/
 venv/
-ENV/
-env/
-.venv/
+.env
 
 # VS Code
 .vscode/
 
-# macOS
-.DS_Store
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
 
-# Logs
-*.log
+# Alembic
+alembic/versions/*
