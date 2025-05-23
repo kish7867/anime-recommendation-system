@@ -25,28 +25,34 @@ def get_user(token: str, db: Session):
 
 @router.get("/search")
 async def search(name: str = None, genre: str = None):
-    # Pass params directly, improved filtering and case-insensitive handled inside search_anime
     results = await search_anime(name=name, genre=genre)
     if not results:
         return []
     return results
 
 @router.get("/recommendations")
-async def recommend(token: str = Depends(oauth2_scheme), db: Session = Depends(database.SessionLocal)):
+async def recommend(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(database.SessionLocal),
+    local_kw: str = None
+):
     user = get_user(token, db)
-    if not user.preferences:
-        # Optional: return empty or default popular anime list if no preferences set
-        return []
-    
-    genres = [g.strip() for g in user.preferences.split(",") if g.strip()]
-    all_results = []
 
+    genres = []
+    if local_kw:
+        genres = [g.strip() for g in local_kw.split(",") if g.strip()]
+    elif user.preferences:
+        genres = [g.strip() for g in user.preferences.split(",") if g.strip()]
+    else:
+        return []
+
+    all_results = []
     for genre in genres:
         results = await search_anime(genre=genre)
         if results:
             all_results.extend(results)
-    
-    # Optionally deduplicate anime by title romaji to avoid repeats
+
+    # Deduplicate results by title
     seen_titles = set()
     unique_results = []
     for anime in all_results:
