@@ -1,5 +1,3 @@
-# Authentication
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app import schemas, models, database
@@ -18,15 +16,16 @@ def create_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 @router.post("/register")
-def register(user: schemas.UserCreate, db: Session = Depends(database.SessionLocal)):
+def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     hashed_pw = pwd_context.hash(user.password)
     db_user = models.User(username=user.username, hashed_password=hashed_pw)
     db.add(db_user)
     db.commit()
+    db.refresh(db_user)
     return {"msg": "User registered"}
 
 @router.post("/login", response_model=schemas.Token)
-def login(user: schemas.UserLogin, db: Session = Depends(database.SessionLocal)):
+def login(user: schemas.UserLogin, db: Session = Depends(database.get_db)):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
