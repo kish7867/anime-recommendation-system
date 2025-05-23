@@ -42,6 +42,8 @@ anime-recommender/
 ├── alembic/ # Migrations
 ├── .env # Environment variables (DO NOT PUSH TO GITHUB)
 ├── .gitignore
+├── frontend/app.py
+│ ├── auth
 ├── requirements.txt
 ├── README.md
 
@@ -88,6 +90,10 @@ alembic upgrade head
 
 6. Run the server
 uvicorn app.main:app --reload
+
+7.🌐 Run the Frontend
+cd frontend
+streamlit run app.py
 
 📦 Sample Requests
 
