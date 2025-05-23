@@ -1,8 +1,7 @@
-# frontend/app.py
 import streamlit as st
 import requests
 
-BASE_URL = "https://anime-recommendation-system-1n3e.onrender.com/"  # update after deploying
+BASE_URL = "https://anime-recommendation-system-1n3e.onrender.com/"
 
 st.title("🎌 Anime Recommendation System")
 
@@ -10,109 +9,124 @@ option = st.selectbox("Choose Action", ["Register", "Login", "Search Anime", "Ge
 
 # Registration
 if option == "Register":
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Register"):
-        r = requests.post(f"{BASE_URL}/auth/register", json={"username": username, "password": password})
-        st.write(r.json())
+    username = st.text_input("Username").strip()
+    password = st.text_input("Password", type="password").strip()
+    if st.button("Register") and username and password:
+        with st.spinner("Registering..."):
+            r = requests.post(f"{BASE_URL}/auth/register", json={"username": username, "password": password})
+        if r.status_code == 200:
+            st.success("Registration successful!")
+        else:
+            st.error(f"Registration failed: {r.json().get('detail', r.text)}")
 
 # Login
 elif option == "Login":
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        r = requests.post(f"{BASE_URL}/auth/login", json={"username": username, "password": password})
-        st.session_state.token = r.json().get("access_token")
-        st.success("✅ Logged in successfully!")
-
-# Search Anime (Cleaned Output)
-elif option == "Search Anime":
-    name = st.text_input("Anime name")
-    genre = st.text_input("Genre")
-    if st.button("Search"):
-        r = requests.get(f"{BASE_URL}/anime/search", params={"name": name, "genre": genre})
-        results = r.json()
-
-        if not results:
-            st.warning("😕 No anime found.")
+    username = st.text_input("Username").strip()
+    password = st.text_input("Password", type="password").strip()
+    if st.button("Login") and username and password:
+        with st.spinner("Logging in..."):
+            r = requests.post(f"{BASE_URL}/auth/login", json={"username": username, "password": password})
+        if r.status_code == 200:
+            token = r.json().get("access_token")
+            if token:
+                st.session_state.token = token
+                st.success("✅ Logged in successfully!")
+            else:
+                st.error("Login failed: No token received.")
         else:
-            for anime in results:
-                title = anime.get("title", {}).get("romaji", "N/A")
-                genres = ", ".join(anime.get("genres", []))
-                popularity = anime.get("popularity", "N/A")
+            st.error(f"Login failed: {r.json().get('detail', r.text)}")
 
-                st.success(
-                    f"""
-                    **🎬 Title:** {title}  
-                    **📚 Genres:** {genres}  
-                    **🔥 Popularity Score:** {popularity}
-                    """
-                )
+# Search Anime
+elif option == "Search Anime":
+    name = st.text_input("Anime name").strip()
+    genre = st.text_input("Genre").strip()
+    if st.button("Search") and (name or genre):
+        with st.spinner("Searching..."):
+            # Convert name to lowercase to help case insensitive search
+            r = requests.get(f"{BASE_URL}/anime/search", params={"name": name.lower(), "genre": genre})
+        if r.status_code == 200:
+            results = r.json()
+            if not results:
+                st.warning("😕 No anime found.")
+            else:
+                for anime in results:
+                    title = anime.get("title", {}).get("romaji", "N/A")
+                    genres = ", ".join(anime.get("genres", []))
+                    popularity = anime.get("popularity", "N/A")
+
+                    st.success(
+                        f"""
+                        **🎬 Title:** {title}  
+                        **📚 Genres:** {genres}  
+                        **🔥 Popularity Score:** {popularity}
+                        """
+                    )
+        else:
+            st.error(f"Search failed: {r.text}")
 
 # Set Preferences
 elif option == "Set Preferences":
     if "token" not in st.session_state:
         st.warning("⚠️ Please login first.")
     else:
-        genres = st.text_input("Enter your favorite genres (comma separated)")
-        if st.button("Save Preferences"):
+        genres = st.text_input("Enter your favorite genres (comma separated)").strip()
+        if st.button("Save Preferences") and genres:
+            genre_list = [g.strip() for g in genres.split(",") if g.strip()]
             headers = {"Authorization": f"Bearer {st.session_state.token}"}
-            r = requests.post(f"{BASE_URL}/user/preferences", json={"genres": genres.split(",")}, headers=headers)
-            st.write(r.json())
+            with st.spinner("Saving preferences..."):
+                r = requests.post(f"{BASE_URL}/user/preferences", json={"genres": genre_list}, headers=headers)
+            if r.status_code == 200:
+                st.success("Preferences saved!")
+            else:
+                st.error(f"Failed to save preferences: {r.text}")
 
-# Get Recommendations (Robust Version)
+# Get Recommendations
 elif option == "Get Recommendations":
     if "token" not in st.session_state:
         st.warning("⚠️ Please login first.")
     else:
         headers = {"Authorization": f"Bearer {st.session_state.token}"}
-        r = requests.get(f"{BASE_URL}/anime/recommendations", headers=headers)
-        
-        try:
-            results = r.json()
-        except Exception as e:
-            st.error(f"Failed to parse response JSON: {e}")
-            results = None
+        with st.spinner("Getting recommendations..."):
+            r = requests.get(f"{BASE_URL}/anime/recommendations", headers=headers)
+        if r.status_code == 200:
+            try:
+                results = r.json()
+            except Exception as e:
+                st.error(f"Failed to parse response JSON: {e}")
+                results = None
 
-        if not results:
-            st.warning("🤷 No recommendations available.")
-        else:
-            # If results is a dict, try to find the list of recommendations inside it
-            if isinstance(results, dict):
-                possible_keys = ["data", "results", "recommendations"]
-                for key in possible_keys:
-                    if key in results:
-                        results = results[key]
-                        break
-                else:
-                    st.warning("🤷 No valid recommendations data found in the response.")
+            if not results:
+                st.warning("🤷 No recommendations available.")
+            else:
+                # If results is a dict, try to find the list inside it
+                if isinstance(results, dict):
+                    for key in ["data", "results", "recommendations"]:
+                        if key in results:
+                            results = results[key]
+                            break
+                    else:
+                        st.warning("🤷 No valid recommendations data found in the response.")
+                        results = []
+
+                if not isinstance(results, list):
+                    st.warning("🤷 Unexpected recommendations format received.")
                     results = []
 
-            # If still not a list, warn and clear results
-            if not isinstance(results, list):
-                st.warning("🤷 Unexpected recommendations format received.")
-                results = []
+                for anime in results:
+                    if not isinstance(anime, dict):
+                        continue
+                    title_info = anime.get("title", {})
+                    title = title_info.get("romaji", "N/A") if isinstance(title_info, dict) else str(title_info)
+                    genres_list = anime.get("genres", [])
+                    genres = ", ".join(genres_list) if isinstance(genres_list, list) else "N/A"
+                    popularity = anime.get("popularity", "N/A")
 
-            # Loop through the recommendations safely
-            for anime in results:
-                if not isinstance(anime, dict):
-                    continue  # skip if not a dict
-
-                title_info = anime.get("title", {})
-                if isinstance(title_info, dict):
-                    title = title_info.get("romaji", "N/A")
-                else:
-                    title = str(title_info) if title_info else "N/A"
-
-                genres_list = anime.get("genres", [])
-                genres = ", ".join(genres_list) if isinstance(genres_list, list) else "N/A"
-
-                popularity = anime.get("popularity", "N/A")
-
-                st.info(
-                    f"""
-                    **🎬 Title:** {title}  
-                    **📚 Genres:** {genres}  
-                    **🔥 Popularity Score:** {popularity}
-                    """
-                )
+                    st.info(
+                        f"""
+                        **🎬 Title:** {title}  
+                        **📚 Genres:** {genres}  
+                        **🔥 Popularity Score:** {popularity}
+                        """
+                    )
+        else:
+            st.error(f"Failed to get recommendations: {r.text}")
