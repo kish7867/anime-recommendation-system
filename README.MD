@@ -68,6 +68,38 @@ Edit
 
 ### 1. Clone the repo
 
-```bash
 git clone https://github.com/your-username/anime-recommendation-system.git
 cd anime-recommendation-system
+
+2. Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+3. Install dependencies
+pip install -r requirements.txt
+
+4. Setup .env file
+Create a .env file in the root:
+DATABASE_URL=postgresql://postgres:yourpassword@localhost/anime_recommender
+SECRET_KEY=supersecretkey
+
+5. Run migrations
+alembic upgrade head
+
+6. Run the server
+uvicorn app.main:app --reload
+
+📦 Sample Requests
+
+Register
+curl -X POST http://localhost:8000/auth/register \
+-H "Content-Type: application/json" \
+-d '{"username": "testuser", "password": "testpass"}'
+
+Login
+curl -X POST http://localhost:8000/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username": "testuser", "password": "testpass"}'
+
+🧑‍💻 Author
+Developed as part of a recruitment assignment using best practices in Python backend development.
