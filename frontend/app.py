@@ -80,53 +80,57 @@ elif option == "Set Preferences":
             else:
                 st.error(f"Failed to save preferences: {r.text}")
 
-# Get Recommendations
 elif option == "Get Recommendations":
     if "token" not in st.session_state:
         st.warning("⚠️ Please login first.")
     else:
-        headers = {"Authorization": f"Bearer {st.session_state.token}"}
-        with st.spinner("Getting recommendations..."):
-            r = requests.get(f"{BASE_URL}/anime/recommendations", headers=headers)
-        if r.status_code == 200:
-            try:
-                results = r.json()
-            except Exception as e:
-                st.error(f"Failed to parse response JSON: {e}")
-                results = None
+        keyword = st.text_input("Enter keyword for recommendations").strip()
+        if st.button("Get Recommendations") and keyword:
+            headers = {"Authorization": f"Bearer {st.session_state.token}"}
+            with st.spinner("Getting recommendations..."):
+                r = requests.get(
+                    f"{BASE_URL}/anime/recommendations",
+                    headers=headers,
+                    params={"local_kw": keyword}
+                )
+            if r.status_code == 200:
+                try:
+                    results = r.json()
+                except Exception as e:
+                    st.error(f"Failed to parse response JSON: {e}")
+                    results = None
 
-            if not results:
-                st.warning("🤷 No recommendations available.")
-            else:
-                # If results is a dict, try to find the list inside it
-                if isinstance(results, dict):
-                    for key in ["data", "results", "recommendations"]:
-                        if key in results:
-                            results = results[key]
-                            break
-                    else:
-                        st.warning("🤷 No valid recommendations data found in the response.")
+                if not results:
+                    st.warning("🤷 No recommendations available.")
+                else:
+                    if isinstance(results, dict):
+                        for key in ["data", "results", "recommendations"]:
+                            if key in results:
+                                results = results[key]
+                                break
+                        else:
+                            st.warning("🤷 No valid recommendations data found in the response.")
+                            results = []
+
+                    if not isinstance(results, list):
+                        st.warning("🤷 Unexpected recommendations format received.")
                         results = []
 
-                if not isinstance(results, list):
-                    st.warning("🤷 Unexpected recommendations format received.")
-                    results = []
+                    for anime in results:
+                        if not isinstance(anime, dict):
+                            continue
+                        title_info = anime.get("title", {})
+                        title = title_info.get("romaji", "N/A") if isinstance(title_info, dict) else str(title_info)
+                        genres_list = anime.get("genres", [])
+                        genres = ", ".join(genres_list) if isinstance(genres_list, list) else "N/A"
+                        popularity = anime.get("popularity", "N/A")
 
-                for anime in results:
-                    if not isinstance(anime, dict):
-                        continue
-                    title_info = anime.get("title", {})
-                    title = title_info.get("romaji", "N/A") if isinstance(title_info, dict) else str(title_info)
-                    genres_list = anime.get("genres", [])
-                    genres = ", ".join(genres_list) if isinstance(genres_list, list) else "N/A"
-                    popularity = anime.get("popularity", "N/A")
-
-                    st.info(
-                        f"""
-                        **🎬 Title:** {title}  
-                        **📚 Genres:** {genres}  
-                        **🔥 Popularity Score:** {popularity}
-                        """
-                    )
+                        st.info(
+                            f"""
+                            **🎬 Title:** {title}  
+                            **📚 Genres:** {genres}  
+                            **🔥 Popularity Score:** {popularity}
+                            """
+                        )
         else:
-            st.error(f"Failed to get recommendations: {r.text}")
+            st.info("Please enter a keyword and click Get Recommendations.")
