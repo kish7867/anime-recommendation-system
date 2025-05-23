@@ -2,7 +2,7 @@
 import streamlit as st
 import requests
 
-BASE_URL = "https://YOUR_RENDER_BACKEND_URL"  # update after deploying
+BASE_URL = "https://anime-recommendation-system-1n3e.onrender.com/"  # update after deploying
 
 st.title("🎌 Anime Recommendation System")
 
