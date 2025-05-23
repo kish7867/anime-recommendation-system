@@ -7,3 +7,4 @@ python-jose
 passlib[bcrypt]
 httpx
 python-dotenv
+streamlit
