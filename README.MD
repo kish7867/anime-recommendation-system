@@ -2,6 +2,10 @@
 
 This is a REST API-based Anime Recommendation System built using **FastAPI**, **PostgreSQL**, and the **AniList GraphQL API**. It includes JWT-based authentication and user-specific anime preferences.
 
+## 🌐 Live Demo
+
+- Frontend: [Streamlit App](https://anime-recommendation-system-1-xt69.onrender.com)
+- Backend API: [FastAPI Backend](https://anime-recommendation-system-1n3e.onrender.com)
 ---
 
 ## 🔧 Features
