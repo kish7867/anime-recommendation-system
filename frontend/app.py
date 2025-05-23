@@ -87,7 +87,10 @@ elif option == "Get Recommendations":
         keyword = st.text_input("Enter keyword for recommendations (optional)").strip()
         if st.button("Get Recommendations"):
             headers = {"Authorization": f"Bearer {st.session_state.token}"}
-            params = {"local_kw": keyword} if keyword else {}
+            params = {}
+            if keyword:
+                params["local_kw"] = keyword
+
             with st.spinner("Getting recommendations..."):
                 r = requests.get(f"{BASE_URL}/anime/recommendations", headers=headers, params=params)
 
@@ -102,8 +105,12 @@ elif option == "Get Recommendations":
                     st.warning("🤷 No recommendations available.")
                 else:
                     for anime in results:
-                        title = anime.get("title", {}).get("romaji", "N/A")
-                        genres = ", ".join(anime.get("genres", []))
+                        if not isinstance(anime, dict):
+                            continue
+                        title_info = anime.get("title", {})
+                        title = title_info.get("romaji", "N/A") if isinstance(title_info, dict) else str(title_info)
+                        genres_list = anime.get("genres", [])
+                        genres = ", ".join(genres_list) if isinstance(genres_list, list) else "N/A"
                         popularity = anime.get("popularity", "N/A")
 
                         st.info(
