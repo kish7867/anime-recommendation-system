@@ -10,7 +10,7 @@ Base.metadata.create_all(bind=engine)
 # ✅ Root route to handle "/"
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to the Anime Recommender API!"}
+    return {"message": "Welcome to the Anime Recommender API!  To see the full Swagger UI for testing your endpoints just type /docs in address bar"}
 
 # Include API routers
 app.include_router(auth_routes.router)
