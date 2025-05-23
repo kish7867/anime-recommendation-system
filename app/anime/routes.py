@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app import database, models
 from app.anime.anilist import search_anime
@@ -34,7 +34,7 @@ async def search(name: str = None, genre: str = None):
 async def recommend(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(database.SessionLocal),
-    local_kw: str = None
+    local_kw: str = Query(None)  # ✅ NOW OPTIONAL
 ):
     user = get_user(token, db)
 
