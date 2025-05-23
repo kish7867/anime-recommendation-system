@@ -47,9 +47,6 @@ anime-recommender/
 ├── requirements.txt
 ├── README.md
 
-yaml
-Copy
-Edit
 
 
 ---
