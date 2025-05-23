@@ -4,7 +4,7 @@ This is a REST API-based Anime Recommendation System built using **FastAPI**, **
 
 ## 🌐 Live Demo
 
-- Frontend: [Streamlit App](https://anime-recommendation-system-1-xt69.onrender.com)
+- Frontend: [Streamlit App](https://kish7867-anime-recommendation-system-frontendapp-85uxeb.streamlit.app)
 - Backend API: [FastAPI Backend](https://anime-recommendation-system-1n3e.onrender.com)
 ---
 
