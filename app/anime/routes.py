@@ -34,7 +34,7 @@ async def search(name: str = None, genre: str = None):
 async def recommend(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(database.SessionLocal),
-    local_kw: str = Query(None)  # ✅ NOW OPTIONAL
+    local_kw: str = Query(default=None)  # optional keyword param
 ):
     user = get_user(token, db)
 
@@ -42,20 +42,25 @@ async def recommend(
     if local_kw:
         genres = [g.strip() for g in local_kw.split(",") if g.strip()]
     elif user.preferences:
-        genres = [g.strip() for g in user.preferences.split(",") if g.strip()]
+        if isinstance(user.preferences, str):
+            genres = [g.strip() for g in user.preferences.split(",") if g.strip()]
     else:
         return []
 
     all_results = []
     for genre in genres:
-        results = await search_anime(genre=genre)
-        if results:
-            all_results.extend(results)
+        try:
+            results = await search_anime(genre=genre)
+            if results:
+                all_results.extend(results)
+        except Exception:
+            continue
 
-    # Deduplicate results by title
     seen_titles = set()
     unique_results = []
     for anime in all_results:
+        if not isinstance(anime, dict):
+            continue
         title = anime.get("title", {}).get("romaji", "")
         if title and title not in seen_titles:
             seen_titles.add(title)

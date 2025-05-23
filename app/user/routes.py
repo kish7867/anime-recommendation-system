@@ -1,41 +1,39 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from jose import jwt, JWTError
-from fastapi.security import OAuth2PasswordBearer
-from app.config import SECRET_KEY, ALGORITHM
-from app import models, schemas, database
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app import database, models
+from jose import jwt, JWTError
+from app.config import SECRET_KEY, ALGORITHM
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+from typing import List
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 router = APIRouter(prefix="/user", tags=["User"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-def get_user_from_token(token: str, db: Session) -> models.User | None:
+def get_user(token: str, db: Session):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         if username is None:
-            return None
-        return db.query(models.User).filter(models.User.username == username).first()
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
     except JWTError:
-        return None
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
-@router.post("/preferences", status_code=status.HTTP_200_OK)
-def set_preferences(preferences: schemas.Preferences, db: Session = Depends(database.SessionLocal), token: str = Depends(oauth2_scheme)):
-    """
-    Set the user's anime genre preferences.
-    """
-    user = get_user_from_token(token, db)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+class PreferenceRequest(BaseModel):
+    genres: List[str]
 
-    if not preferences.genres:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Genres list cannot be empty")
-
-    # Clean genres: strip whitespace
-    cleaned_genres = [genre.strip() for genre in preferences.genres if genre.strip()]
-    if not cleaned_genres:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Genres list cannot be empty after cleaning")
-
-    user.preferences = ",".join(cleaned_genres)
-    db.add(user)
+@router.post("/preferences")
+def set_preferences(
+    pref: PreferenceRequest,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(database.SessionLocal)
+):
+    user = get_user(token, db)
+    user.preferences = ",".join(pref.genres)
     db.commit()
-    return {"msg": "Preferences saved successfully"}
+    return {"message": "Preferences updated!"}
