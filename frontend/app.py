@@ -60,21 +60,53 @@ elif option == "Set Preferences":
             r = requests.post(f"{BASE_URL}/user/preferences", json={"genres": genres.split(",")}, headers=headers)
             st.write(r.json())
 
-# Get Recommendations (Cleaned Output)
+# Get Recommendations (Robust Version)
 elif option == "Get Recommendations":
     if "token" not in st.session_state:
         st.warning("⚠️ Please login first.")
     else:
         headers = {"Authorization": f"Bearer {st.session_state.token}"}
         r = requests.get(f"{BASE_URL}/anime/recommendations", headers=headers)
-        results = r.json()
+        
+        try:
+            results = r.json()
+        except Exception as e:
+            st.error(f"Failed to parse response JSON: {e}")
+            results = None
 
         if not results:
             st.warning("🤷 No recommendations available.")
         else:
+            # If results is a dict, try to find the list of recommendations inside it
+            if isinstance(results, dict):
+                possible_keys = ["data", "results", "recommendations"]
+                for key in possible_keys:
+                    if key in results:
+                        results = results[key]
+                        break
+                else:
+                    st.warning("🤷 No valid recommendations data found in the response.")
+                    results = []
+
+            # If still not a list, warn and clear results
+            if not isinstance(results, list):
+                st.warning("🤷 Unexpected recommendations format received.")
+                results = []
+
+            # Loop through the recommendations safely
             for anime in results:
-                title = anime.get("title", {}).get("romaji", "N/A")
-                genres = ", ".join(anime.get("genres", []))
+                if not isinstance(anime, dict):
+                    continue  # skip if not a dict
+
+                title_info = anime.get("title", {})
+                if isinstance(title_info, dict):
+                    title = title_info.get("romaji", "N/A")
+                else:
+                    title = str(title_info) if title_info else "N/A"
+
+                genres_list = anime.get("genres", [])
+                genres = ", ".join(genres_list) if isinstance(genres_list, list) else "N/A"
+
                 popularity = anime.get("popularity", "N/A")
 
                 st.info(
